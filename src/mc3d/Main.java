@@ -70,25 +70,22 @@ public class Main {
 		double lastypos = 0;
 		double deltax;
 		double deltay;
-		int lastAction=0;
 		boolean firstRun = true;
 		// glEnable(GL_CULL_FACE);
 		glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		float[] pos = { -1,-1,0,  1,-1,0,  1,1,0,  -1,1,0 };
-		float[] uv  = { 0,0, 1,0, 1,1, 0,1 };
-		int[]  idx  = { 0,1,2, 2,3,0 };
+		float[] pos = { -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0 };
+		float[] uv = { 0, 0, 1, 0, 1, 1, 0, 1 };
+		int[] idx = { 0, 1, 2, 2, 3, 0 };
 		Mesh crosshairMesh = new Mesh(pos, uv, idx);
 		Texture crosshairTex = new Texture("textures/hud/crosshair.png"); // PNG à fond transparent
-		
+
 		// =================== BOUCLE DE JEU ===================
 		while (!window.shouldClose()) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// Fermer avec Echap
-			if (glfwGetKey(window.getHandle(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-				glfwSetWindowShouldClose(window.getHandle(), true);
-			}
+			player.newDt();
+
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_A) == GLFW_PRESS)
 				player.move(Direction.Left, world);
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_S) == GLFW_PRESS)
@@ -101,29 +98,37 @@ public class Main {
 				player.move(Direction.Up, world);
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 				player.move(Direction.Down, world);
-			if (glfwGetKey(window.getHandle(), GLFW_KEY_E) == GLFW_PRESS)
-				player.changeBlock();
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 				player.run();
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS)
 				player.stopRun();
-			lastAction+=1;
-			if(((glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS)) && (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_RIGHT) != GLFW_PRESS)) {
-				lastAction=50;
-			}
-			if(lastAction>=30) {
+			glfwSetKeyCallback(window.getHandle(), (win, key, scancode, action, mods) -> {
+				if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+					player.changeBlock();
+				}
+				if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+					glfwSetWindowShouldClose(window.getHandle(), true);
+				}
+			});
+			glfwSetMouseButtonCallback(window.getHandle(), (win, button, action, mods) -> {
+				if ((button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)||(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)) {
+					player.setLastAction(0);
+				}
+			});
+			
+			
+			if (glfwGetTime() - player.getLastAction() >= 0.25) {
 				if (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 					player.destroy(world);
-					world.update=true;
-					lastAction=0;
+					world.update = true;
+					player.setLastAction(glfwGetTime());
 				}
 				if (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
 					player.place(world);
-					world.update=true;
-					lastAction=0;
+					world.update = true;
+					player.setLastAction(glfwGetTime());
 				}
 			}
-
 
 			// souris : rotation de la player
 			glfwGetCursorPos(window.getHandle(), xpos, ypos);
@@ -150,9 +155,9 @@ public class Main {
 
 			debug.update(); // DEBUG
 			// --- HUD ---
-			glDisable(GL_DEPTH_TEST);   // toujours au-dessus de la 3D
-			glDisable(GL_CULL_FACE);    // au cas où le quad serait culé
-			glEnable(GL_BLEND);         // ⬅️ la transparence du PNG
+			glDisable(GL_DEPTH_TEST); // toujours au-dessus de la 3D
+			glDisable(GL_CULL_FACE); // au cas où le quad serait culé
+			glEnable(GL_BLEND); // ⬅️ la transparence du PNG
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			Matrix4f identite = new Matrix4f();
@@ -176,7 +181,7 @@ public class Main {
 			if (firstRun) {
 				firstRun = false;
 			}
-			world.update=false;
+			world.update = false;
 		}
 
 		// =================== NETTOYAGE ===================

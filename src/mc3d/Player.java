@@ -6,12 +6,14 @@ import java.util.List;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import static org.lwjgl.glfw.GLFW.glfwGetTime;
 
 /**
  * Camera 3D = le joueur. Position (les yeux), orientation (pitch/yaw) et
  * physique simple.
  *
- * Convention de signe : yVelocity POSITIF = vers le haut, NEGATIF = vers le bas.
+ * Convention de signe : yVelocity POSITIF = vers le haut, NEGATIF = vers le
+ * bas.
  */
 public class Player {
 
@@ -20,39 +22,53 @@ public class Player {
 	private float yaw; // G/D
 	private double walkSpeed = 0.1;
 	final private double sensibility = 0.5;
+	private double lastAction;
 
 	// --- physique ---
-	final private double gravity = 0.015;
-	final private double jumpForce = 0.25;
+	final private double gravity = 54;
+	final private double jumpForce = 15;
 	final private double playerHeight = 1.8;
-	final private double playerRadius = 0.5;
+	final private double playerRadius = 0.3;
 	private double yVelocity = 0;
 	private boolean onGround = false;
-	private boolean run=false;
-	
-	int blockPlaceIndex=0;
+	private boolean run = false;
+	private double dt = 0;
+	private double lastDt = 0;
+	private double mnt;
+
+	int blockPlaceIndex = 0;
+
+	public double getLastAction() {
+		return this.lastAction;
+	}
+
+	public void setLastAction(double lA) {
+		this.lastAction = lA;
+	}
 
 	private boolean collides(Maps maps) {
-		
-		//player hitbox
+
+		// player hitbox
 		List<List<Double>> playerHitboxe = new ArrayList<>();
-		List<Double> playerHitboxeX = Arrays.asList(this.position.x-playerRadius,this.position.x+playerRadius);
-		List<Double> playerHitboxeY = Arrays.asList(this.position.y-playerHeight,this.position.y+0.0); // pied / tête
-		List<Double> playerHitboxeZ = Arrays.asList(this.position.z-playerRadius,this.position.z+playerRadius);
+		List<Double> playerHitboxeX = Arrays.asList(this.position.x - playerRadius, this.position.x + playerRadius);
+		List<Double> playerHitboxeY = Arrays.asList(this.position.y - playerHeight + 0.01, this.position.y + 0.0); // pied
+																													// //
+																													// tête
+		List<Double> playerHitboxeZ = Arrays.asList(this.position.z - playerRadius, this.position.z + playerRadius);
 		playerHitboxe.add(playerHitboxeX);
 		playerHitboxe.add(playerHitboxeY);
 		playerHitboxe.add(playerHitboxeZ);
-		
-		//block au alentour
-		for(int bx=(int) Math.round(playerHitboxeX.get(0)); bx<=Math.round(playerHitboxeX.get(1)); bx++) {
-			for(int by=(int) Math.round(playerHitboxeY.get(0)); by<=Math.round(playerHitboxeY.get(1)); by++) {
-				for(int bz=(int) Math.round(playerHitboxeZ.get(0)); bz<=Math.round(playerHitboxeZ.get(1)); bz++) {
-					if(maps.isBlock(new Vector3f(bx,by,bz))) {
+
+		// block au alentour
+		for (int bx = (int) Math.round(playerHitboxeX.get(0)); bx <= Math.round(playerHitboxeX.get(1)); bx++) {
+			for (int by = (int) Math.round(playerHitboxeY.get(0)); by <= Math.round(playerHitboxeY.get(1)); by++) {
+				for (int bz = (int) Math.round(playerHitboxeZ.get(0)); bz <= Math.round(playerHitboxeZ.get(1)); bz++) {
+					if (maps.isBlock(new Vector3f(bx, by, bz))) {
 						// tester les axes
 						boolean axeX = (playerHitboxeX.get(0) < bx + 0.5) && (bx - 0.5 < playerHitboxeX.get(1));
 						boolean axeY = (playerHitboxeY.get(0) < by + 0.5) && (by - 0.5 < playerHitboxeY.get(1));
 						boolean axeZ = (playerHitboxeZ.get(0) < bz + 0.5) && (bz - 0.5 < playerHitboxeZ.get(1));
-						if(axeX && axeY && axeZ){
+						if (axeX && axeY && axeZ) {
 							return true;
 						}
 					}
@@ -62,43 +78,51 @@ public class Player {
 		// si c good
 		return false;
 	}
+
+	public void newDt() {
+		this.mnt = glfwGetTime();
+		this.dt = mnt - this.lastDt;
+		this.dt = Math.min(dt, 0.05);
+		this.lastDt = mnt;
+	}
+
 	/** Gravite + collision VERTICALE (atterrissage sur le dessus d'un bloc). */
 	public void applyGravity(Maps maps) {
-		yVelocity -= gravity;
+		yVelocity -= gravity * this.dt;
+		float lastY = position.y;
 
-		double feetY = position.y - playerHeight;
-		double newFeetY = feetY + yVelocity;
+		position.y += (float) yVelocity * this.dt;
+		if (this.collides(maps)) {
+			position.y = lastY;
 
-		int cellX = Math.round(position.x);
-		int cellZ = Math.round(position.z);
-		int cellY = (int) Math.floor(newFeetY + 0.5);
-
-		if (yVelocity <= 0 && maps.isBlock(new Vector3f(cellX, cellY, cellZ))) {
-			position.y = (float) (cellY + 0.5 + playerHeight);
+			if (yVelocity < 0) {
+				onGround = true;
+			} else {
+				onGround = false;
+			}
 			yVelocity = 0;
-			onGround = true;
 		} else {
-			position.y += (float) yVelocity;
 			onGround = false;
 		}
-		
-		if(this.position.y <=-50) {
-			this.position = new Vector3f(0,50,0);
+
+		if (this.position.y <= -50) {
+			this.position = new Vector3f(0, 50, 0);
 		}
 	}
-	
+
 	public void run() {
-		this.run=true;
+		this.run = true;
 	}
-	
+
 	public void stopRun() {
-		this.run=false;
+		this.run = false;
 	}
-	
+
 	public void changeBlock() {
-		this.blockPlaceIndex+=1;
-		this.blockPlaceIndex%=BlockType.values().length;
+		this.blockPlaceIndex += 1;
+		this.blockPlaceIndex %= BlockType.values().length;
 	}
+
 	public List<Vector3f> raycast(Maps maps) {
 		// direction 3D du regard (en RADIANS)
 		double yawR = Math.toRadians(yaw);
@@ -131,7 +155,12 @@ public class Player {
 	public void place(Maps maps) {
 		List<Vector3f> raycastResult = this.raycast(maps);
 		if (raycastResult != null) {
-			if (raycastResult.get(0) != null) maps.placeBlock(raycastResult.get(0), BlockType.values()[blockPlaceIndex]);
+			if (raycastResult.get(0) != null) {
+				maps.placeBlock(raycastResult.get(0), BlockType.values()[blockPlaceIndex]);
+				if (this.collides(maps)) {
+					maps.removeBlock(raycastResult.get(0));
+				}
+			}
 		}
 	}
 
@@ -166,65 +195,91 @@ public class Player {
 	}
 
 	// --- getters (debug, etc.) ---
-	public Vector3f getPosition() { return position; }
-	public float getYaw()         { return yaw; }
-	public float getPitch()       { return pitch; }
+	public Vector3f getPosition() {
+		return position;
+	}
+
+	public float getYaw() {
+		return yaw;
+	}
+
+	public float getPitch() {
+		return pitch;
+	}
 
 	/**
-	 * Y a-t-il un bloc qui gene le joueur a cette position (x,z) ?
-	 * Teste toute la BOITE du joueur : largeur (rayon) x hauteur (pieds -> tete).
+	 * Y a-t-il un bloc qui gene le joueur a cette position (x,z) ? Teste toute la
+	 * BOITE du joueur : largeur (rayon) x hauteur (pieds -> tete).
 	 */
-	private boolean estBloque(Maps maps, double x, double z) {
-		double r = playerRadius;
-		double feetY = position.y - playerHeight;
-		int celluleBas = (int) Math.round(feetY + 0.05); // case des pieds (marge anti-sol)
-		int celluleHaut = (int) Math.round(position.y);  // case de la tete
-		for (int cx = (int) Math.round(x - r); cx <= (int) Math.round(x + r); cx++) {
-			for (int cz = (int) Math.round(z - r); cz <= (int) Math.round(z + r); cz++) {
-				for (int cy = celluleBas; cy <= celluleHaut; cy++) {
-					if (maps.isBlock(new Vector3f(cx, cy, cz))) {
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
+	/*
+	 * private boolean estBloque(Maps maps, double x, double z) { double r =
+	 * playerRadius; double feetY = position.y - playerHeight; int celluleBas =
+	 * (int) Math.round(feetY + 0.05); // case des pieds (marge anti-sol) int
+	 * celluleHaut = (int) Math.round(position.y); // case de la tete for (int cx =
+	 * (int) Math.round(x - r); cx <= (int) Math.round(x + r); cx++) { for (int cz =
+	 * (int) Math.round(z - r); cz <= (int) Math.round(z + r); cz++) { for (int cy =
+	 * celluleBas; cy <= celluleHaut; cy++) { if (maps.isBlock(new Vector3f(cx, cy,
+	 * cz))) { return true; } } } } return false; }
+	 */
 
 	public void move(Direction d, Maps maps) {
 		double avantX = Math.sin(Math.toRadians(this.yaw));
 		double avantZ = -Math.cos(Math.toRadians(this.yaw));
 		double droiteX = Math.cos(Math.toRadians(this.yaw));
 		double droiteZ = Math.sin(Math.toRadians(this.yaw));
-		if(this.run) {
-			this.walkSpeed=0.15;
+		if (this.run) {
+			this.walkSpeed = 9 * this.dt;
 		} else {
-			this.walkSpeed=0.1;
+			this.walkSpeed = 6 * this.dt;
 		}
 		switch (d) {
 		case Forward -> {
 			double nextX = position.x + avantX * walkSpeed;
 			double nextZ = position.z + avantZ * walkSpeed;
-			if (!estBloque(maps, nextX, position.z)) position.x = (float) nextX;
-			if (!estBloque(maps, position.x, nextZ)) position.z = (float) nextZ;
+			float lastX = position.x;
+			float lastZ = position.z;
+			position.x = (float) nextX;
+			if (this.collides(maps))
+				position.x = lastX;
+			position.z = (float) nextZ;
+			if (this.collides(maps))
+				position.z = lastZ;
 		}
 		case Backward -> {
 			double nextX = position.x - avantX * walkSpeed;
 			double nextZ = position.z - avantZ * walkSpeed;
-			if (!estBloque(maps, nextX, position.z)) position.x = (float) nextX;
-			if (!estBloque(maps, position.x, nextZ)) position.z = (float) nextZ;
+			float lastX = position.x;
+			float lastZ = position.z;
+			position.x = (float) nextX;
+			if (this.collides(maps))
+				position.x = lastX;
+			position.z = (float) nextZ;
+			if (this.collides(maps))
+				position.z = lastZ;
 		}
 		case Left -> {
 			double nextX = position.x - droiteX * walkSpeed;
 			double nextZ = position.z - droiteZ * walkSpeed;
-			if (!estBloque(maps, nextX, position.z)) position.x = (float) nextX;
-			if (!estBloque(maps, position.x, nextZ)) position.z = (float) nextZ;
+			float lastX = position.x;
+			float lastZ = position.z;
+			position.x = (float) nextX;
+			if (this.collides(maps))
+				position.x = lastX;
+			position.z = (float) nextZ;
+			if (this.collides(maps))
+				position.z = lastZ;
 		}
 		case Right -> {
 			double nextX = position.x + droiteX * walkSpeed;
 			double nextZ = position.z + droiteZ * walkSpeed;
-			if (!estBloque(maps, nextX, position.z)) position.x = (float) nextX;
-			if (!estBloque(maps, position.x, nextZ)) position.z = (float) nextZ;
+			float lastX = position.x;
+			float lastZ = position.z;
+			position.x = (float) nextX;
+			if (this.collides(maps))
+				position.x = lastX;
+			position.z = (float) nextZ;
+			if (this.collides(maps))
+				position.z = lastZ;
 		}
 		case Up -> {
 			if (onGround) { // on ne saute que si on touche le sol
@@ -232,7 +287,8 @@ public class Player {
 				onGround = false;
 			}
 		}
-		case Down -> { /* desactive : la gravite gere la verticale */ }
+		case Down -> {
+			/* desactive : la gravite gere la verticale */ }
 		}
 	}
 }
