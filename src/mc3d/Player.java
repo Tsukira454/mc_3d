@@ -288,34 +288,31 @@ public class Player {
 		return pitch;
 	}
 
+	private boolean solSousPied(Maps maps) {
+		float lastY = position.y;
+		position.y -= 0.05;
+		if (!this.collides(maps) && this.sneak && this.onGround) {
+			position.y = lastY;
+			return false;
+		}
+		position.y = lastY;
+		return true;
+		
+	}
+
 	private void moveCheck(double nextX, double nextZ, Maps maps) {
 		float lastX = position.x;
 		float lastZ = position.z;
-		float lastY = position.y;
+		
 
 		position.x = (float) nextX;
-
-		position.y -= 0.05;
-		if (!this.collides(maps) && this.sneak && this.onGround) {
+		if (this.collides(maps) || !solSousPied(maps))
 			position.x = lastX;
-		} else {
-			position.y = lastY;
-			if (this.collides(maps))
-				position.x = lastX;
-		}
-		position.y = lastY;
 
 		position.z = (float) nextZ;
-
-		position.y -= 0.05;
-		if (!this.collides(maps) && this.sneak && this.onGround) {
+		if (this.collides(maps) || !solSousPied(maps))
 			position.z = lastZ;
-		} else {
-			position.y = lastY;
-			if (this.collides(maps))
-				position.z = lastZ;
-		}
-		position.y = lastY;
+		
 
 	}
 
@@ -331,7 +328,7 @@ public class Player {
 			this.walkSpeed = 6 * this.dt;
 		}
 		if (this.sneak) {
-			this.walkSpeed=(this.walkSpeed/10)*7;
+			this.walkSpeed = (this.walkSpeed / 10) * 7;
 		}
 
 		switch (d) {
