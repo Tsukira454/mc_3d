@@ -117,8 +117,6 @@ public class Main {
 				player.move(Direction.Right, world);
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_SPACE) == GLFW_PRESS)
 				player.move(Direction.Up, world);
-			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-				player.move(Direction.Down, world);
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 				player.run();
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS)

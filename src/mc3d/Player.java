@@ -313,7 +313,7 @@ public class Player {
 		if (this.collides(maps) || !solSousPied(maps))
 			position.z = lastZ;
 		
-
+		maps.GenerateChunk(position);
 	}
 
 	public void move(Direction d, Maps maps) {
@@ -353,13 +353,11 @@ public class Player {
 			moveCheck(nextX, nextZ, maps);
 		}
 		case Up -> {
-			if (onGround) { // on ne saute que si on touche le sol
+			if (onGround) {
 				yVelocity = jumpForce;
 				onGround = false;
+				}
 			}
-		}
-		case Down -> {
-			/* desactive : la gravite gere la verticale */ }
 		}
 	}
 }
