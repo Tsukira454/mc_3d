@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Un maillage : des sommets (positions + couleurs) relies par des indices,
+ * Un maillage : des sommets (positions & uv) relies par des indices,
  * le tout stocke sur la carte graphique (1 VAO + des VBOs + 1 EBO pour les indices).
  */
 public class Mesh {

@@ -71,7 +71,7 @@ public class Main {
 		double deltax;
 		double deltay;
 		boolean firstRun = true;
-		// glEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 		glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 		float[] pos = { -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0 };
@@ -80,6 +80,27 @@ public class Main {
 		Mesh crosshairMesh = new Mesh(pos, uv, idx);
 		Texture crosshairTex = new Texture("textures/hud/crosshair.png"); // PNG à fond transparent
 
+		
+		glfwSetKeyCallback(window.getHandle(), (win, key, scancode, action, mods) -> {
+			if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+				player.changeBlock();
+			}
+			if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+				glfwSetWindowShouldClose(window.getHandle(), true);
+			}
+			if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
+				player.sneak();
+			}
+			if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
+				player.stopSneak();
+			}
+		});
+		glfwSetMouseButtonCallback(window.getHandle(), (win, button, action, mods) -> {
+			if ((button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)||(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)) {
+				player.setLastAction(0);
+			}
+		});
+		
 		// =================== BOUCLE DE JEU ===================
 		while (!window.shouldClose()) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -102,19 +123,6 @@ public class Main {
 				player.run();
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS)
 				player.stopRun();
-			glfwSetKeyCallback(window.getHandle(), (win, key, scancode, action, mods) -> {
-				if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-					player.changeBlock();
-				}
-				if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-					glfwSetWindowShouldClose(window.getHandle(), true);
-				}
-			});
-			glfwSetMouseButtonCallback(window.getHandle(), (win, button, action, mods) -> {
-				if ((button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)||(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)) {
-					player.setLastAction(0);
-				}
-			});
 			
 			
 			if (glfwGetTime() - player.getLastAction() >= 0.25) {

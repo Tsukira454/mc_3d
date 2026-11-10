@@ -26,12 +26,13 @@ public class Player {
 
 	// --- physique ---
 	final private double gravity = 54;
-	final private double jumpForce = 15;
-	final private double playerHeight = 1.8;
+	final private double jumpForce = 12.5;
+	private double playerHeight = 1.8;
 	final private double playerRadius = 0.3;
 	private double yVelocity = 0;
 	private boolean onGround = false;
 	private boolean run = false;
+	private boolean sneak = false;
 	private double dt = 0;
 	private double lastDt = 0;
 	private double mnt;
@@ -118,38 +119,118 @@ public class Player {
 		this.run = false;
 	}
 
+	public void sneak() {
+		this.sneak = true;
+		this.playerHeight = 1.4;
+		this.position.y -= 0.4;
+	}
+
+	public void stopSneak() {
+		this.sneak = false;
+		this.playerHeight = 1.8;
+		this.position.y += 0.4;
+	}
+
 	public void changeBlock() {
 		this.blockPlaceIndex += 1;
 		this.blockPlaceIndex %= BlockType.values().length;
 	}
 
+	/**
+	 * Raycast DDA : trouve le bloc que le joueur regarde.
+	 *
+	 * Idee : on avance le long du rayon "de mur en mur". A chaque etape on se
+	 * demande quel mur de case (X, Y ou Z) le rayon touche EN PREMIER, on passe
+	 * dans la case voisine de ce cote-la, et on regarde s'il y a un bloc. => 1
+	 * etape = 1 nouvelle case, on ne peut jamais en sauter une.
+	 *
+	 * Rappel : les blocs sont centres sur les entiers, le bloc 3 va de 2.5 a 3.5.
+	 *
+	 * @return null si rien n'est touche dans la portee, sinon une liste [0] = la
+	 *         case vide juste avant le bloc (la ou on POSE), null si l'oeil est
+	 *         deja dans un bloc [1] = le bloc touche (celui qu'on CASSE)
+	 */
 	public List<Vector3f> raycast(Maps maps) {
-		// direction 3D du regard (en RADIANS)
+		double reach = 5.0; // portee max, en blocs
+
+		// ---- 1. Direction du regard (vecteur de longueur 1) ----
 		double yawR = Math.toRadians(yaw);
 		double pitchR = Math.toRadians(pitch);
 		double dx = Math.sin(yawR) * Math.cos(pitchR);
 		double dy = -Math.sin(pitchR);
 		double dz = -Math.cos(yawR) * Math.cos(pitchR);
 
-		double reach = 5.0;
-		double stepSize = 0.05;
+		// ---- 2. La case de depart : celle ou sont les yeux ----
+		int cx = Math.round(position.x);
+		int cy = Math.round(position.y);
+		int cz = Math.round(position.z);
 
-		Vector3f avant = null;
-		for (double dist = 0; dist <= reach; dist += stepSize) {
-			int cx = (int) Math.round(position.x + dx * dist);
-			int cy = (int) Math.round(position.y + dy * dist);
-			int cz = (int) Math.round(position.z + dz * dist);
+		// Oeil deja dans un bloc : on le vise directement, impossible de poser
+		if (maps.isBlock(new Vector3f(cx, cy, cz))) {
+			List<Vector3f> result = new ArrayList<>();
+			result.add(null);
+			result.add(new Vector3f(cx, cy, cz));
+			return result;
+		}
+
+		// ---- 3. Le sens dans lequel on avance sur chaque axe : +1 ou -1 ----
+		int stepX = (dx > 0) ? 1 : -1;
+		int stepY = (dy > 0) ? 1 : -1;
+		int stepZ = (dz > 0) ? 1 : -1;
+
+		// ---- 4. tDelta : distance (le long du rayon) pour traverser UNE case entiere
+		// ----
+		// Ex : si le rayon avance de 0.5 en X par unite de distance,
+		// il faut 1 / 0.5 = 2 de distance pour faire 1 bloc en X.
+		// Si d == 0, on n'avance jamais sur cet axe -> distance infinie.
+		double tDeltaX = (dx != 0) ? Math.abs(1 / dx) : Double.POSITIVE_INFINITY;
+		double tDeltaY = (dy != 0) ? Math.abs(1 / dy) : Double.POSITIVE_INFINITY;
+		double tDeltaZ = (dz != 0) ? Math.abs(1 / dz) : Double.POSITIVE_INFINITY;
+
+		// ---- 5. tMax : distance (le long du rayon) jusqu'au PROCHAIN mur sur chaque
+		// axe ----
+		// Le prochain mur est a case + 0.5 (si on va vers +) ou case - 0.5 (si on va
+		// vers -).
+		// Il reste (mur - position) a parcourir sur cet axe, et le rayon en fait d par
+		// unite de distance -> distance = (mur - position) / d.
+		// Ex : x = 3.2, dx = 0.5 -> mur a 3.5 -> (3.5 - 3.2) / 0.5 = 0.6
+		double tMaxX = (dx != 0) ? ((cx + 0.5 * stepX) - position.x) / dx : Double.POSITIVE_INFINITY;
+		double tMaxY = (dy != 0) ? ((cy + 0.5 * stepY) - position.y) / dy : Double.POSITIVE_INFINITY;
+		double tMaxZ = (dz != 0) ? ((cz + 0.5 * stepZ) - position.z) / dz : Double.POSITIVE_INFINITY;
+
+		// ---- 6. La boucle : de mur en mur ----
+		while (true) {
+			// on retient la case actuelle AVANT de bouger (c'est la qu'on posera un bloc)
+			Vector3f avant = new Vector3f(cx, cy, cz);
+
+			// Quel mur est le plus proche ? On passe dans la case voisine de ce cote-la,
+			// puis on calcule la distance jusqu'au mur suivant sur ce meme axe.
+			if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+				if (tMaxX > reach)
+					return null; // le prochain mur est trop loin : rien touche
+				cx += stepX;
+				tMaxX += tDeltaX;
+			} else if (tMaxY < tMaxZ) {
+				if (tMaxY > reach)
+					return null;
+				cy += stepY;
+				tMaxY += tDeltaY;
+			} else {
+				if (tMaxZ > reach)
+					return null;
+				cz += stepZ;
+				tMaxZ += tDeltaZ;
+			}
+
+			// Nouvelle case : y a-t-il un bloc ?
 			Vector3f cell = new Vector3f(cx, cy, cz);
-
 			if (maps.isBlock(cell)) {
 				List<Vector3f> result = new ArrayList<>();
-				result.add(avant);
-				result.add(cell);
+				result.add(avant); // la case vide d'avant, collee par une FACE au bloc
+				result.add(cell); // le bloc touche
 				return result;
 			}
-			avant = cell;
 		}
-		return null;
 	}
 
 	public void place(Maps maps) {
@@ -207,79 +288,72 @@ public class Player {
 		return pitch;
 	}
 
-	/**
-	 * Y a-t-il un bloc qui gene le joueur a cette position (x,z) ? Teste toute la
-	 * BOITE du joueur : largeur (rayon) x hauteur (pieds -> tete).
-	 */
-	/*
-	 * private boolean estBloque(Maps maps, double x, double z) { double r =
-	 * playerRadius; double feetY = position.y - playerHeight; int celluleBas =
-	 * (int) Math.round(feetY + 0.05); // case des pieds (marge anti-sol) int
-	 * celluleHaut = (int) Math.round(position.y); // case de la tete for (int cx =
-	 * (int) Math.round(x - r); cx <= (int) Math.round(x + r); cx++) { for (int cz =
-	 * (int) Math.round(z - r); cz <= (int) Math.round(z + r); cz++) { for (int cy =
-	 * celluleBas; cy <= celluleHaut; cy++) { if (maps.isBlock(new Vector3f(cx, cy,
-	 * cz))) { return true; } } } } return false; }
-	 */
+	private void moveCheck(double nextX, double nextZ, Maps maps) {
+		float lastX = position.x;
+		float lastZ = position.z;
+		float lastY = position.y;
+
+		position.x = (float) nextX;
+
+		position.y -= 0.05;
+		if (!this.collides(maps) && this.sneak && this.onGround) {
+			position.x = lastX;
+		} else {
+			position.y = lastY;
+			if (this.collides(maps))
+				position.x = lastX;
+		}
+		position.y = lastY;
+
+		position.z = (float) nextZ;
+
+		position.y -= 0.05;
+		if (!this.collides(maps) && this.sneak && this.onGround) {
+			position.z = lastZ;
+		} else {
+			position.y = lastY;
+			if (this.collides(maps))
+				position.z = lastZ;
+		}
+		position.y = lastY;
+
+	}
 
 	public void move(Direction d, Maps maps) {
 		double avantX = Math.sin(Math.toRadians(this.yaw));
 		double avantZ = -Math.cos(Math.toRadians(this.yaw));
 		double droiteX = Math.cos(Math.toRadians(this.yaw));
 		double droiteZ = Math.sin(Math.toRadians(this.yaw));
+
 		if (this.run) {
 			this.walkSpeed = 9 * this.dt;
 		} else {
 			this.walkSpeed = 6 * this.dt;
 		}
+		if (this.sneak) {
+			this.walkSpeed=(this.walkSpeed/10)*7;
+		}
+
 		switch (d) {
 		case Forward -> {
 			double nextX = position.x + avantX * walkSpeed;
 			double nextZ = position.z + avantZ * walkSpeed;
-			float lastX = position.x;
-			float lastZ = position.z;
-			position.x = (float) nextX;
-			if (this.collides(maps))
-				position.x = lastX;
-			position.z = (float) nextZ;
-			if (this.collides(maps))
-				position.z = lastZ;
+			moveCheck(nextX, nextZ, maps);
 		}
 		case Backward -> {
 			double nextX = position.x - avantX * walkSpeed;
 			double nextZ = position.z - avantZ * walkSpeed;
-			float lastX = position.x;
-			float lastZ = position.z;
-			position.x = (float) nextX;
-			if (this.collides(maps))
-				position.x = lastX;
-			position.z = (float) nextZ;
-			if (this.collides(maps))
-				position.z = lastZ;
+			moveCheck(nextX, nextZ, maps);
 		}
 		case Left -> {
 			double nextX = position.x - droiteX * walkSpeed;
 			double nextZ = position.z - droiteZ * walkSpeed;
-			float lastX = position.x;
-			float lastZ = position.z;
-			position.x = (float) nextX;
-			if (this.collides(maps))
-				position.x = lastX;
-			position.z = (float) nextZ;
-			if (this.collides(maps))
-				position.z = lastZ;
+			moveCheck(nextX, nextZ, maps);
 		}
 		case Right -> {
 			double nextX = position.x + droiteX * walkSpeed;
 			double nextZ = position.z + droiteZ * walkSpeed;
-			float lastX = position.x;
-			float lastZ = position.z;
-			position.x = (float) nextX;
-			if (this.collides(maps))
-				position.x = lastX;
-			position.z = (float) nextZ;
-			if (this.collides(maps))
-				position.z = lastZ;
+			moveCheck(nextX, nextZ, maps);
 		}
 		case Up -> {
 			if (onGround) { // on ne saute que si on touche le sol

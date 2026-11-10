@@ -49,7 +49,7 @@ public class Window {
         });
 
         glfwMakeContextCurrent(handle);
-        glfwSwapInterval(0);          // v-sync (limite ~60 fps, evite de chauffer le GPU)
+        glfwSwapInterval(0);          // v-sync
         glfwShowWindow(handle);
 
         GL.createCapabilities();       // active OpenGL cote Java (obligatoire avant tout glXxx)
