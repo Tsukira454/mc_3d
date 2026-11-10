@@ -106,6 +106,7 @@ public class Main {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			player.newDt();
+			world.GenerateNewChunk(player.getPosition());
 
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_A) == GLFW_PRESS)
 				player.move(Direction.Left, world);
@@ -126,12 +127,10 @@ public class Main {
 			if (glfwGetTime() - player.getLastAction() >= 0.25) {
 				if (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 					player.destroy(world);
-					world.update = true;
 					player.setLastAction(glfwGetTime());
 				}
 				if (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
 					player.place(world);
-					world.update = true;
 					player.setLastAction(glfwGetTime());
 				}
 			}

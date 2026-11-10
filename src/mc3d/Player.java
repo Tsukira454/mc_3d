@@ -108,6 +108,7 @@ public class Player {
 
 		if (this.position.y <= -50) {
 			this.position = new Vector3f(0, 50, 0);
+			yVelocity = 0;
 		}
 	}
 
@@ -313,7 +314,6 @@ public class Player {
 		if (this.collides(maps) || !solSousPied(maps))
 			position.z = lastZ;
 		
-		maps.GenerateChunk(position);
 	}
 
 	public void move(Direction d, Maps maps) {
@@ -328,7 +328,7 @@ public class Player {
 			this.walkSpeed = 6 * this.dt;
 		}
 		if (this.sneak) {
-			this.walkSpeed = (this.walkSpeed / 10) * 7;
+			this.walkSpeed = (this.walkSpeed / 10) * 3;
 		}
 
 		switch (d) {
