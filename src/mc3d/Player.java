@@ -17,7 +17,7 @@ import static org.lwjgl.glfw.GLFW.glfwGetTime;
  */
 public class Player {
 
-	private Vector3f position = new Vector3f(0, 200, 0); // on spawn en l'air -> on tombe sur le sol
+	private Vector3f position = new Vector3f(0, 50, 0); // on spawn en l'air -> on tombe sur le sol
 	private float pitch; // H/B
 	private float yaw; // G/D
 	private double walkSpeed = 0.1;

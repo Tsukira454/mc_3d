@@ -9,6 +9,7 @@ import org.joml.Vector3i;
 public class Chunk {
 	private Vector3i chunkPosition;
 	public static final int SIZE = 16;
+	static final float ATLAS_CASES = (float) 6.0;
 	BlockType[][][] blocks;
 	
 	
@@ -91,12 +92,12 @@ public class Chunk {
 					for (int z = 0; z < SIZE; z++) {
 						if(blocks[x][y][z] != null && blocks[x][y][z] != BlockType.STAIRS) {
 							BlockType btActuelle = blocks[x][y][z];
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y + 1, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_DESSUS, x, y, z, btActuelle);
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y - 1, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_DESSOUS, x, y, z, btActuelle);
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z - 1))) ajouterFace(positions, uvs, indices, FACE_NORD, x, y, z, btActuelle);
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z + 1))) ajouterFace(positions, uvs, indices, FACE_SUD, x, y, z, btActuelle);
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x + 1, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_EST, x, y, z, btActuelle);
-							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x - 1, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_OUEST, x, y, z, btActuelle);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y + 1, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_DESSUS, x, y, z, btActuelle, 0);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y - 1, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_DESSOUS, x, y, z, btActuelle, 1);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z - 1))) ajouterFace(positions, uvs, indices, FACE_NORD, x, y, z, btActuelle, 2);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z + 1))) ajouterFace(positions, uvs, indices, FACE_SUD, x, y, z, btActuelle, 3);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x + 1, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_EST, x, y, z, btActuelle, 4);
+							if (!maps.isBlock(new Vector3f((chunkPosition.x*SIZE)+x - 1, (chunkPosition.y*SIZE)+y, (chunkPosition.z*SIZE)+z))) ajouterFace(positions, uvs, indices, FACE_OUEST, x, y, z, btActuelle, 5);
 						}
 					}
 			this.meshIsUpdate=true;
@@ -106,7 +107,7 @@ public class Chunk {
 	}
 	
 	static void ajouterFace(List<Float> positions, List<Float> uvs, List<Integer> indices,
-			float[][] coins, float x, float y, float z, BlockType bt) {
+			float[][] coins, float x, float y, float z, BlockType bt, int face) {
 
 		int base = positions.size() / 3; // nb de sommets deja dans la liste (3 floats par sommet)
 
@@ -118,8 +119,8 @@ public class Chunk {
 		}
 
 		// les UV : toujours l'image entiere sur la face
-		float u0 = (float) (bt.getAtlasIndex()/4.0);
-		float u1 = (float) (u0+0.25);
+		float u0 = (float) (bt.getAtlasIndex(face)/Chunk.ATLAS_CASES);
+		float u1 = (float) (u0+1/Chunk.ATLAS_CASES);
 		uvs.add(u0); uvs.add(0f);
 		uvs.add(u1); uvs.add(0f);
 		uvs.add(u1); uvs.add(1f);

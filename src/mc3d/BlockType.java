@@ -1,24 +1,25 @@
 package mc3d;
 
 public enum BlockType {
-	DIRT(ModelType.cube, "textures/block/dirt.png", BlockSpawn.NATURAL, 1),
-	STAIRS(ModelType.stairs, "textures/block/stairs_default.png", BlockSpawn.NonNATURAL,-1),
-	DEFAULT(ModelType.cube, "textures/block/default.png", BlockSpawn.NonNATURAL,0),
-	GOLD_BLOCK(ModelType.cube, "textures/block/gold_block.png", BlockSpawn.NonNATURAL,3),
-	STONE(ModelType.cube, "textures/block/stone.png", BlockSpawn.NATURAL,2);
+	DIRT(ModelType.cube, BlockSpawn.NATURAL, new int[] { 1, 1, 1, 1, 1, 1 }),
+	STAIRS(ModelType.stairs, BlockSpawn.NonNATURAL,
+			new int[] { -1, -1, -1, -1, -1, -1 }),
+	DEFAULT(ModelType.cube, BlockSpawn.NonNATURAL, new int[] { 0, 0, 0, 0, 0, 0 }),
+	GOLD_BLOCK(ModelType.cube, BlockSpawn.NonNATURAL, new int[] { 3, 3, 3, 3, 3, 3 }),
+	STONE(ModelType.cube, BlockSpawn.NATURAL, new int[] { 2, 2, 2, 2, 2, 2 }),
+	GRASS_BLOCK(ModelType.cube, BlockSpawn.NATURAL, new int[] { 5, 1, 4, 4, 4, 4 });
 
 	// les champs qui stockent les valeurs de chaque constante
 	private final ModelType model;
-	private final String texturePath;
 	private final BlockSpawn blockSpawn;
-	private int atlasIndex;
+	private int[] atlasFaces;
+	// haut | bas | nords | sud | est | ouest
 
 	// le constructeur (implicitement privé) : appelé 1× par constante
-	BlockType(ModelType cube, String texturePath, BlockSpawn natural, int atlasIndex) {
+	BlockType(ModelType cube, BlockSpawn natural, int[] atlasIndex) {
 		this.model = cube;
-		this.texturePath = texturePath;
 		this.blockSpawn = natural;
-		this.atlasIndex = atlasIndex;
+		this.atlasFaces = atlasIndex;
 	}
 
 	// les getters pour lire les valeurs
@@ -26,15 +27,15 @@ public enum BlockType {
 		return model;
 	}
 
-	public String getTexturePath() {
-		return texturePath;
-	}
-
 	public BlockSpawn getBlockSpawn() {
 		return blockSpawn;
 	}
-	
-	public int getAtlasIndex() {
-		return atlasIndex;
+
+	public int[] getAtlasIndex() {
+		return atlasFaces;
+	}
+
+	public int getAtlasIndex(int face) {
+		return atlasFaces[face];
 	}
 }

@@ -33,9 +33,9 @@ public class Maps {
 
 	public void GenerateNewChunk(Vector3f playerPosition) {
 		Vector3i test = worldPosToChunkPos(playerPosition);
-		for (int x = -15; x <= 15; x++)
+		for (int x = -5; x <= 5; x++)
 			for (int y = -3; y <= 3; y++)
-				for (int z = -15; z <= 15; z++) {
+				for (int z = -5; z <= 5; z++) {
 					if (!this.worldMaps.containsKey(new Vector3i(test.x + x, test.y + y, test.z + z))) {
 						this.worldMaps.put(new Vector3i(test.x + x, test.y + y, test.z + z),
 								new Chunk(new Vector3i(test.x + x, test.y + y, test.z + z),
@@ -55,9 +55,11 @@ public class Maps {
 					int mondeY = v3i.y * Chunk.SIZE + y;
 					float n = noise.GetNoise(mondeX, mondeZ);
 					int hauteur = (int) (20 + n * 10);
-					if (mondeY < hauteur) {
+					if (mondeY < hauteur-3) {
 						blocks[x][y][z] = BlockType.STONE;
 					} else if (mondeY == hauteur) {
+						blocks[x][y][z] = BlockType.GRASS_BLOCK;
+					} else if (mondeY < hauteur) {
 						blocks[x][y][z] = BlockType.DIRT;
 					}
 
