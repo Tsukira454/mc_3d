@@ -17,7 +17,6 @@ public class Maps {
 	Map<String, Texture> textures = new HashMap<>();
 	Map<Vector3i, Chunk> worldMaps = new HashMap<>();
 	boolean update = true; // true = la liste visible doit etre reconstruite
-	List<Cube> renderBlockList = new ArrayList<>(); // les blocs reellement visibles (cache)
 
 	public Maps() {
 		for (ModelType type : ModelType.values()) {
@@ -26,8 +25,8 @@ public class Maps {
 	}
 
 	public void GenerateMaps() {
-		for (int x = -1; x < 1; x++)
-			for (int z = -1; z < 1; z++)
+		for (int x = -5; x < 5; x++)
+			for (int z = -5; z < 5; z++)
 				this.worldMaps.put(new Vector3i(x, 0, z), new Chunk(new Vector3i(x, 0, z), GenerateChunk(false)));
 	}
 
@@ -42,10 +41,10 @@ public class Maps {
 				}
 			}
 	}
-	
+
 	public BlockType[][][] GenerateChunk(boolean empty) {
 		BlockType[][][] blocks = new BlockType[Chunk.SIZE][Chunk.SIZE][Chunk.SIZE];
-		if(!empty) {
+		if (!empty) {
 			List<BlockType> naturalBlock = new ArrayList<BlockType>();
 			for (BlockType blockType : BlockType.values()) {
 				if (blockType.getBlockSpawn() == BlockSpawn.NATURAL) {
@@ -54,7 +53,7 @@ public class Maps {
 			}
 			for (int x = 0; x < Chunk.SIZE; x++)
 				for (int z = 0; z < Chunk.SIZE; z++) {
-					if(x==0 || x==Chunk.SIZE-1 || z==0 || z==Chunk.SIZE-1) {
+					if (x == 0 || x == Chunk.SIZE - 1 || z == 0 || z == Chunk.SIZE - 1) {
 						blocks[x][0][z] = BlockType.DEFAULT;
 					} else {
 						blocks[x][0][z] = naturalBlock.get((int) (Math.random() * naturalBlock.size()));
@@ -68,7 +67,7 @@ public class Maps {
 		if (this.worldMaps.containsKey((worldPosToChunkPos(v3f)))) {
 			Chunk chunk = this.worldMaps.get(worldPosToChunkPos(v3f));
 			Vector3i blockPos = worldPosToChunkBlockPos(v3f);
-			chunk.removeBlock(blockPos);
+			chunk.removeBlock(blockPos, this);
 		}
 		this.update = true; // le monde a change -> reconstruire la liste visible
 	}
@@ -81,7 +80,7 @@ public class Maps {
 		}
 		Chunk chunk = this.worldMaps.get(ChunkPos);
 		Vector3i blockPos = worldPosToChunkBlockPos(v3f);
-		chunk.placeBlock(blockPos, bt);
+		chunk.placeBlock(blockPos, bt, this);
 		this.update = true; // le monde a change -> reconstruire la liste visible
 	}
 
@@ -108,28 +107,6 @@ public class Maps {
 				|| !isBlock(new Vector3f(p.x, p.y, p.z - 1)) || !isBlock(new Vector3f(p.x, p.y, p.z + 1));
 	}
 
-	/**
-	 * Reconstruit la liste des blocs visibles (appele seulement quand le monde
-	 * change).
-	 */
-	private void rebuildRenderList() {
-		this.renderBlockList.clear();
-		for (Chunk chunk : this.worldMaps.values()) {
-			for (int x = 0; x < Chunk.SIZE; x++)
-				for (int y = 0; y < Chunk.SIZE; y++)
-					for (int z = 0; z < Chunk.SIZE; z++) {
-						if (chunk.getBlockPos(new Vector3i(x, y, z)) != null) {
-							Vector3i ChunkPos = chunk.getChunkPos();
-							Cube block = new Cube((ChunkPos.x * Chunk.SIZE) + x, (ChunkPos.y * Chunk.SIZE) + y, (ChunkPos.z * Chunk.SIZE) + z,
-									chunk.getBlockPos(new Vector3i(x, y, z)));
-							if (estVisible(block)) {
-								this.renderBlockList.add(block);
-							}
-						}
-					}
-		}
-	}
-
 	private Vector3i worldPosToChunkPos(Vector3f v3f) {
 		return new Vector3i(Math.floorDiv(Math.round(v3f.x), Chunk.SIZE), Math.floorDiv(Math.round(v3f.y), Chunk.SIZE),
 				Math.floorDiv(Math.round(v3f.z), Chunk.SIZE));
@@ -141,20 +118,19 @@ public class Maps {
 	}
 
 	public void RenderWorld(ShaderProgram shader) {
-		if (this.update) {
-			rebuildRenderList();
-			this.update = false; // calcule une fois, puis on reutilise le cache
-		}
-		for (Cube block : this.renderBlockList) {
-			Texture t = textures.computeIfAbsent(block.getBlockType().getTexturePath(), p -> new Texture(p));
-			glActiveTexture(GL_TEXTURE0);
-			t.bind();
-			shader.setUniform("uTexture", 0);
+		for (Chunk chunk : this.worldMaps.values()) {
+			Mesh mesh = chunk.buildMesh(this);
+			if (mesh != null) {
+				Vector3i cp = chunk.getChunkPos();
+				Matrix4f modelMatrix = new Matrix4f().translate(cp.x * Chunk.SIZE, cp.y * Chunk.SIZE, cp.z * Chunk.SIZE);
+				shader.setUniform("model", modelMatrix);
+				Texture t = textures.computeIfAbsent("textures/block/atlas.png", p -> new Texture(p));
+				glActiveTexture(GL_TEXTURE0);
+				t.bind();
+				shader.setUniform("uTexture", 0);
+				mesh.render();
+			}
 
-			Matrix4f modelMatrix = new Matrix4f().translate(block.getPosition());
-			shader.setUniform("model", modelMatrix);
-			Mesh mesh = model.get(block.getBlockType().getModel());
-			mesh.render();
 		}
 	}
 

@@ -262,7 +262,7 @@ public class Player {
 	/** Matrice de perspective. fov = angle de vue, aspect = largeur/hauteur. */
 	public Matrix4f getProjectionMatrix(int width, int height) {
 		float aspect = (float) width / height;
-		return new Matrix4f().perspective((float) Math.toRadians(70.0), aspect, 0.1f, 100.0f);
+		return new Matrix4f().perspective((float) Math.toRadians(70.0), aspect, 0.1f, 100000.0f);
 	}
 
 	public void setPitch(double delta) {

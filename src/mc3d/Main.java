@@ -19,7 +19,8 @@ import org.joml.Matrix4f;
 public class Main {
 
 	// ---- Les shaders, ecrits en GLSL, stockes en texte (text blocks Java 25) ----
-
+	static boolean filDeFer = false;
+	static boolean culling = true;
 	private static final String VERTEX_SHADER = """
 			#version 330 core
 			layout (location = 0) in vec3 aPos;
@@ -94,6 +95,9 @@ public class Main {
 			if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
 				player.stopSneak();
 			}
+			if (key == GLFW_KEY_F && action == GLFW_PRESS) filDeFer = !filDeFer;
+			if (key == GLFW_KEY_C && action == GLFW_PRESS) culling = !culling;
+
 		});
 		glfwSetMouseButtonCallback(window.getHandle(), (win, button, action, mods) -> {
 			if ((button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)||(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)) {
@@ -122,7 +126,8 @@ public class Main {
 				player.run();
 			if (glfwGetKey(window.getHandle(), GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS)
 				player.stopRun();
-			
+			if (culling) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+			glPolygonMode(GL_FRONT_AND_BACK, filDeFer ? GL_LINE : GL_FILL);
 			
 			if (glfwGetTime() - player.getLastAction() >= 0.25) {
 				if (glfwGetMouseButton(window.getHandle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
